@@ -30,7 +30,7 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
-flags.DEFINE_string('dataset', 'cifar10', 'cifar10 or cifar100 or imagenet.')
+flags.DEFINE_string('dataset', 'imagenet', 'cifar10 or cifar100 or imagenet.')
 dataset="imagenet"
 flags.DEFINE_string('mode', 'train', 'train or eval.')
 flags.DEFINE_string('train_data_path', '',
@@ -46,7 +46,8 @@ flags.DEFINE_integer('eval_batch_count', 50,
                             'Number of batches to eval.')
 flags.DEFINE_bool('eval_once', False,
                          'Whether evaluate the model only once.')
-flags.DEFINE_string('log_root', '',
+# flags.DEFINE_string('log_root', '',
+flags.DEFINE_string('log_dir', '',
                            'Directory to keep the checkpoints. Should be a '
                            'parent directory of FLAGS.train_dir/eval_dir.')
 flags.DEFINE_integer('num_gpus', 0,
@@ -72,7 +73,8 @@ flags.DEFINE_float("_FILE_SHUFFLE_BUFFER", 1024, "_FILE_SHUFFLE_BUFFER")
 flags.DEFINE_float("_SHUFFLE_BUFFER", 1024, "_SHUFFLE_BUFFER")
 
 
-flags.DEFINE_boolean("sync_replicas", False,
+# flags.DEFINE_boolean("sync_replicas", False,
+flags.DEFINE_boolean("sync_replicas", True,
                      "Use the sync_replicas (synchronized replicas) mode, "
                      "wherein the parameter updates from workers are aggregated "
                      "before applied to avoid stale gradients")
@@ -89,6 +91,13 @@ flags.DEFINE_string("job_name", None,"job name: worker or ps")
 
 flags.DEFINE_string('data_format', 'channels_first',
                            'channels_first for cuDNN, channels_last for MKL')
+flags.DEFINE_integer("num_intra_threads", 0,
+                     "Number of threads to use for intra-op parallelism. If set" 
+                     "to 0, the system will pick an appropriate number.")
+flags.DEFINE_integer("num_inter_threads", 0,
+                     "Number of threads to use for inter-op parallelism. If set" 
+                     "to 0, the system will pick an appropriate number.")
+
 FLAGS = flags.FLAGS
 
 
@@ -177,6 +186,23 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1):
   images, labels = iterator.get_next()
   return images, labels
 
+
+def create_config_proto():
+    """Returns session config proto.
+    Args:
+    params: Params tuple, typically created by make_params or
+            make_params_from_flags.
+    """
+    config = tf.ConfigProto()
+    config.allow_soft_placement = True
+    config.log_device_placement= False
+    if(FLAGS.num_intra_threads != 0):
+        config.intra_op_parallelism_threads = FLAGS.num_intra_threads
+    if(FLAGS.num_inter_threads != 0):
+        config.inter_op_parallelism_threads = FLAGS.num_inter_threads
+    config.gpu_options.allow_growth = True
+    return config
+
 def train(hps, server):
   """Training loop."""
   # Ops : on every worker   
@@ -188,16 +214,6 @@ def train(hps, server):
   model = resnet_model.ResNet(hps, images, labels, FLAGS.mode)
   # model = logist_model.LRNet(images, labels, FLAGS.mode)
   model.build_graph()
-
-  #param_stats = tf.contrib.tfprof.model_analyzer.print_model_analysis(
-  #    tf.get_default_graph(),
-  #    tfprof_options=tf.contrib.tfprof.model_analyzer.
-  #        TRAINABLE_VARS_PARAMS_STAT_OPTIONS)
-  #sys.stdout.write('total_params: %d\n' % param_stats.total_parameters)
-
-  #tf.contrib.tfprof.model_analyzer.print_model_analysis(
-  #    tf.get_default_graph(),
-  #    tfprof_options=tf.contrib.tfprof.model_analyzer.FLOAT_OPS_OPTIONS)
 
   truth = tf.argmax(model.labels, axis=1)
   predictions = tf.argmax(model.predictions, axis=1)
@@ -241,25 +257,27 @@ def train(hps, server):
       else:
         self._lrn_rate = 0.001 * 0.4
 
+  config = create_config_proto()
   is_chief = (FLAGS.task_index == 0)
   with tf.train.MonitoredTrainingSession(
       master=server.target,
       is_chief=is_chief,
-      checkpoint_dir=FLAGS.log_root,
+      #checkpoint_dir=FLAGS.log_root,
+      checkpoint_dir = FLAGS.train_dir,
       hooks=[tf.train.StopAtStepHook(last_step=FLAGS.train_steps),
           logging_hook, _LearningRateSetterHook()],
-      #chief_only_hooks=[model.replicas_hook, summary_hook],
-      chief_only_hooks= [summary_hook],
+      chief_only_hooks=[model.replicas_hook, summary_hook],
       # Since we provide a SummarySaverHook, we need to disable default
       # SummarySaverHook. To do that we set save_summaries_steps to 0.
       save_summaries_steps=0,
       stop_grace_period_secs=120,
-      config=tf.ConfigProto(allow_soft_placement=True)) as mon_sess:
+      # config=tf.ConfigProto(allow_soft_placement=True)) as mon_sess:
+      config=config) as mon_sess:
     while not mon_sess.should_stop():
       mon_sess.run(model.train_op)
 
 def main(_):
-  num_classes = 1000
+  num_classes = 1001
   if FLAGS.dataset == 'imagenet':
     num_classes = 1000
 
@@ -301,7 +319,6 @@ def main(_):
     # for each worker in the corresponding machine
     gpu = (FLAGS.task_index % FLAGS.num_gpus)
     worker_device = "/job:worker/task:%d/gpu:%d" % (FLAGS.task_index, gpu)
-    #ps_device = "/job:ps/task:%d/gpu:%d" % (FLAGS.task_index, gpu)
   elif FLAGS.num_gpus == 0:
     # Just allocate the CPU to worker server
     cpu = 0
@@ -310,8 +327,7 @@ def main(_):
   with tf.device(
       tf.train.replica_device_setter(
           worker_device=worker_device,
-          ps_device="/job:ps/cpu:0",
-	  # ps_device=ps_device,
+          # ps_device="/job:ps/cpu:0",
           cluster=cluster)):
 
     if FLAGS.mode == 'train':
