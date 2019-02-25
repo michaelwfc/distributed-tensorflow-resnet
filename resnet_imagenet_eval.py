@@ -26,7 +26,7 @@ import resnet_model
 import vgg_preprocessing 
 import tensorflow as tf
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('dataset', 'imagenet', 'cifar10 or cifar100.')
 tf.app.flags.DEFINE_string('mode', 'eval', 'train or eval.')
 tf.app.flags.DEFINE_string('train_data_path', '',
@@ -42,7 +42,8 @@ tf.app.flags.DEFINE_integer('eval_batch_count', 50,
                             'Number of batches to eval.')
 tf.app.flags.DEFINE_bool('eval_once', False,
                          'Whether evaluate the model only once.')
-tf.app.flags.DEFINE_string('log_root', '',
+# tf.app.flags.DEFINE_string('log_root', '',
+tf.app.flags.DEFINE_string('log_dir', '',
                            'Directory to keep the checkpoints. Should be a '
                            'parent directory of FLAGS.train_dir/eval_dir.')
 tf.app.flags.DEFINE_integer('num_gpus', 0,
@@ -52,9 +53,21 @@ tf.app.flags.DEFINE_integer("num_epochs", 3000,
 tf.app.flags.DEFINE_integer("batch_size", 128,
                      "batch size for training")
 
+
+tf.app.flags.DEFINE_integer("num_parallel_calls", 5,
+                     " (Optional.) A tf.int32 scalar tf.Tensor, representing the number elements to process in parallel0.\
+                      If not specified, elements will be processed sequentially. If the value tf.data.experimental.\
+                      AUTOTUNE is used, then the number of parallel calls is set dynamically based on available CPU.")
+tf.app.flags.DEFINE_string('data_format', 'channels_first',
+                           'channels_first for cuDNN, channels_last for MKL')
+
+FLAGS = tf.app.flags.FLAGS
+
+
 _DEFAULT_IMAGE_SIZE = 224
 _NUM_CHANNELS = 3
-_LABEL_CLASSES = 1001
+#_LABEL_CLASSES = 1001
+_LABEL_CLASSES = 1000
 
 _MOMENTUM = 0.9
 _WEIGHT_DECAY = 1e-4
@@ -124,15 +137,17 @@ def record_parser(value, is_training):
 
 def input_fn(is_training, data_dir, batch_size, num_epochs=1):
   """Input function which provides batches for train or eval."""
-  dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames(is_training, data_dir))
-
+  #dataset = tf.contrib.data.Dataset.from_tensor_slices(filenames(is_training, data_dir))
+  dataset = tf.data.Dataset.from_tensor_slices(filenames(is_training, data_dir))
   if is_training:
     dataset = dataset.shuffle(buffer_size=_FILE_SHUFFLE_BUFFER)
 
-  dataset = dataset.flat_map(tf.contrib.data.TFRecordDataset)
+  #dataset = dataset.flat_map(tf.contrib.data.TFRecordDataset)
+  dataset = dataset.flat_map(tf.data.TFRecordDataset)
   dataset = dataset.map(lambda value: record_parser(value, is_training),
-                       num_threads=5,
-                       output_buffer_size=batch_size)
+                        # num_threads=5,
+                        # output_buffer_size=batch_size)
+                        num_parallel_calls=FLAGS.num_parallel_calls)
   # dataset = dataset.prefetch(batch_size)
 
   if is_training:
@@ -167,14 +182,15 @@ def evaluate(hps):
   best_precision = 0.0
   while True:
     try:
-      ckpt_state = tf.train.get_checkpoint_state(FLAGS.log_root)
+      ckpt_state = tf.train.get_checkpoint_state(FLAGS.train_dir)
+      tf.logging.info('Loading checkpoint from  %s and the ckpt_state is %s' % (FLAGS.train_dir, ckpt_state))
     except tf.errors.OutOfRangeError as e:
-      tf.logging.error('Cannot restore checkpoint: %s', e)
-      continue
+      tf.logging.error('Cannot restore checkpoint: %s' % e)
+      break
     if not (ckpt_state and ckpt_state.model_checkpoint_path):
-      tf.logging.info('No model to eval yet at %s', FLAGS.log_root)
-      continue
-    tf.logging.info('Loading checkpoint %s', ckpt_state.model_checkpoint_path)
+      tf.logging.info('No model to eval yet at %s' % FLAGS.train_dir)
+      break
+    tf.logging.info('Loading checkpoint %s' % ckpt_state.model_checkpoint_path)
     saver.restore(sess, ckpt_state.model_checkpoint_path)
 
     total_prediction, correct_prediction = 0, 0
@@ -211,6 +227,8 @@ def evaluate(hps):
 
 
 def main(_):
+  tf.logging.info("The train_dir is %s" % FLAGS.train_dir)
+  tf.logging.info("The eval_data_path is %s" % FLAGS.eval_data_path)
   if FLAGS.num_gpus == 0:
     dev = '/cpu:0'
   elif FLAGS.num_gpus == 1:
@@ -224,7 +242,8 @@ def main(_):
   elif FLAGS.dataset == 'cifar100':
     num_classes = 100
   elif FLAGS.dataset == 'imagenet':
-    num_classes = 1001
+    # num_classes = 1001
+    num_classes = 1000
 
   hps = resnet_model.HParams(
                              num_classes=num_classes,
