@@ -17,7 +17,7 @@ scripts_dir=/home/h3cai01/wangfeicheng/Tensorflow
 WORKDIR="/Tensorflow"
 
 #run on cifar
-script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
+script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_train.py"
 data_dir=/home/hdd0/dataset/cifar10_data
 train_data_path=/home/hdd0/dataset/cifar10_data
 eval_data_path=/home/hdd0/dataset/cifar10_data/cifar-10-batches-bin/test_batch.bin
