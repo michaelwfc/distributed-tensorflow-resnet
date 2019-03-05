@@ -27,6 +27,8 @@ import resnet_model
 import logist_model
 import tensorflow as tf
 
+
+
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
 flags.DEFINE_string('dataset', 'cifar10', 'cifar10 or cifar100.')
@@ -94,6 +96,9 @@ flags.DEFINE_enum('variable_update', 'parameter_server',
                   'replicated, distributed_replicated, independent, '
                   'distributed_all_reduce, collective_all_reduce, horovod')
 
+if (FLAGS.mode == 'train') and (FLAGS.variable_update == 'horovod'):
+    import horovod.tensorflow as hvd
+
 FLAGS = flags.FLAGS
 
 _HEIGHT = 32
@@ -124,17 +129,21 @@ def create_config_proto():
         config.intra_op_parallelism_threads = FLAGS.num_intra_threads
     if (FLAGS.num_inter_threads != 0):
         config.inter_op_parallelism_threads = FLAGS.num_inter_threads
-    # config.gpu_options.force_gpu_compatible = params.force_gpu_compatible
-    # if params.gpu_memory_frac_for_testing > 0:
-    #   config.gpu_options.per_process_gpu_memory_fraction = (
-    #       params.gpu_memory_frac_for_testing)
-    # if params.xla:
-    #   config.graph_options.optimizer_options.global_jit_level = (
-    #       tf.OptimizerOptions.ON_1)
-    # if params.enable_layout_optimizer:
-    #   config.graph_options.rewrite_options.layout_optimizer = (
-    #       rewriter_config_pb2.RewriterConfig.ON)
-
+    # Pin GPU to be used to process local rank (one GPU per process)
+    #config.gpu_options.visible_device_list = str(hvd.local_rank())
+    '''
+    hvd.local_rank() says "use GPU with the same ID as the local rank", but you can in fact set the visible device list 
+    to be whatever you want. For example, to achieve what you're trying to do, you can explicitly map individual 
+    ranks to devices
+    '''
+    if  FLAGS.variable_update=='horovod':
+        device_map = {
+            0: 0,
+            1: 1,
+            2: 2,
+            3: 3
+        }
+        config.gpu_options.visible_device_list = str(device_map[hvd.rank()])
     return config
 
 
@@ -253,7 +262,7 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1):
 
 def train(hps, server=None):
     """Training loop."""
-    tf.logging.info("We will start the %s mode:" % FLAGS.mode)
+    tf.logging.info("We will start the  mode: %s with variable_update:%s" % (FLAGS.mode, FLAGS.variable_update))
     # old dataset
     # images, labels = cifar_input.build_input(
     #    FLAGS.dataset, FLAGS.train_data_path, FLAGS.batch_size, FLAGS.mode)
@@ -314,16 +323,17 @@ def train(hps, server=None):
             else:
                 self._lrn_rate = 0.0001
 
-    if FLAGS.job_name == None:
-        # serial version
+    if (FLAGS.mode == 'train') and (FLAGS.variable_update == 'horovod'):
+        # horovod version
+        checkpoint_dir = FLAGS.train_dir if hvd.rank() == 0 else None
+
         with tf.train.MonitoredTrainingSession(
-                checkpoint_dir=FLAGS.train_dir,
-                # save_checkpoint_secs=60,
-                save_checkpoint_steps=1000,
-                hooks=[logging_hook, _LearningRateSetterHook(), stop_hook],
-                chief_only_hooks=[model.replicas_hook, summary_hook],
+                checkpoint_dir=checkpoint_dir,
+                save_checkpoint_secs=60,
+                hooks=[hvd.BroadcastGlobalVariablesHook(0), logging_hook, _LearningRateSetterHook()],
+                chief_only_hooks=[summary_hook],
                 # Since we provide a SummarySaverHook, we need to disable default
-                # SummarySaverHook. To do that we set save_summaries_steps to 0.
+                # SummarySaverHook. To do that we set  save_summaries_steps to 0.
                 save_summaries_steps=0,
                 config=create_config_proto()) as mon_sess:
             while not mon_sess.should_stop():
@@ -423,8 +433,8 @@ def main(_):
                                optimizer='mom')
 
     if (FLAGS.mode == 'train') and (FLAGS.variable_update == 'horovod'):
-        if FLAGS.job_name == None:
-            # serial version
+
+            hvd.init()
             train(hps)
     elif FLAGS.mode == 'train' and FLAGS.variable_update == 'parameter_server':
         # add cluster information
