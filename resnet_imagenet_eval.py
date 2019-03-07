@@ -48,7 +48,7 @@ tf.app.flags.DEFINE_string('log_dir', '',
                            'parent directory of FLAGS.train_dir/eval_dir.')
 tf.app.flags.DEFINE_integer('num_gpus', 0,
                             'Number of gpus used for training. (0 or 1)')
-tf.app.flags.DEFINE_integer("num_epochs", 3000,
+tf.app.flags.DEFINE_integer("num_epochs", 300000,
                      "Number of (global) training steps to perform")
 tf.app.flags.DEFINE_integer("batch_size", 128,
                      "batch size for training")
@@ -168,66 +168,71 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1):
 
 def evaluate(hps):
   """Eval loop."""
+  # To clear the defined variables and operations of the previous cell
+  tf.reset_default_graph()
   images, labels = input_fn(False, FLAGS.eval_data_path, FLAGS.batch_size, FLAGS.num_epochs)
-  #images, labels = cifar_input.build_input(
-  #    FLAGS.dataset, FLAGS.eval_data_path, FLAGS.batch_size, FLAGS.mode)
+
   model = resnet_model.ResNet(hps, images, labels, FLAGS.mode)
   model.build_graph(False)
   saver = tf.train.Saver()
-  summary_writer = tf.summary.FileWriter(FLAGS.eval_dir)
 
-  sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-  tf.train.start_queue_runners(sess)
 
-  best_precision = 0.0
-  while True:
-    try:
-      ckpt_state = tf.train.get_checkpoint_state(FLAGS.train_dir)
-      tf.logging.info('Loading checkpoint from  %s and the ckpt_state is %s' % (FLAGS.train_dir, ckpt_state))
-    except tf.errors.OutOfRangeError as e:
-      tf.logging.error('Cannot restore checkpoint: %s' % e)
-      break
-    if not (ckpt_state and ckpt_state.model_checkpoint_path):
-      tf.logging.info('No model to eval yet at %s' % FLAGS.train_dir)
-      break
-    tf.logging.info('Loading checkpoint %s' % ckpt_state.model_checkpoint_path)
-    saver.restore(sess, ckpt_state.model_checkpoint_path)
+  with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+      tf.train.start_queue_runners(sess)
 
-    total_prediction, correct_prediction = 0, 0
-    for _ in six.moves.range(FLAGS.eval_batch_count):
-      (summaries, loss, predictions, truth, train_step) = sess.run(
-          [model.summaries, model.cost, model.predictions,
-           model.labels, model.global_step])
+      summary_writer = tf.summary.FileWriter(FLAGS.eval_dir, sess.graph)
 
-      truth = np.argmax(truth, axis=1)
-      predictions = np.argmax(predictions, axis=1)
-      correct_prediction += np.sum(truth == predictions)
-      total_prediction += predictions.shape[0]
+      best_precision = 0.0
+      while True:
+        try:
+          ckpt_state = tf.train.get_checkpoint_state(FLAGS.train_dir)
+          tf.logging.info('Loading checkpoint from  %s and the ckpt_state is %s' % (FLAGS.train_dir, ckpt_state))
+        except tf.errors.OutOfRangeError as e:
+          tf.logging.error('Cannot restore checkpoint: %s' % e)
+          break
+        if not (ckpt_state and ckpt_state.model_checkpoint_path):
+          tf.logging.info('No model to eval yet at %s' % FLAGS.train_dir)
+          break
+        tf.logging.info('Loading checkpoint %s' % ckpt_state.model_checkpoint_path)
+        saver.restore(sess, ckpt_state.model_checkpoint_path)
 
-    precision = 1.0 * correct_prediction / total_prediction
-    best_precision = max(precision, best_precision)
+        total_prediction, correct_prediction = 0, 0
+        for _ in six.moves.range(FLAGS.eval_batch_count):
+          (summaries, loss, predictions, truth, train_step) = sess.run(
+              [model.summaries, model.cost, model.predictions,
+               model.labels, model.global_step])
 
-    precision_summ = tf.Summary()
-    precision_summ.value.add(
-        tag='Precision', simple_value=precision)
-    summary_writer.add_summary(precision_summ, train_step)
-    best_precision_summ = tf.Summary()
-    best_precision_summ.value.add(
-        tag='Best Precision', simple_value=best_precision)
-    summary_writer.add_summary(best_precision_summ, train_step)
-    summary_writer.add_summary(summaries, train_step)
-    tf.logging.info('loss: %.3f, precision: %.3f, best precision: %.3f' %
-                    (loss, precision, best_precision))
-    summary_writer.flush()
+          truth = np.argmax(truth, axis=1)
+          predictions = np.argmax(predictions, axis=1)
+          correct_prediction += np.sum(truth == predictions)
+          total_prediction += predictions.shape[0]
 
-    if FLAGS.eval_once:
-      break
+        precision = 1.0 * correct_prediction / total_prediction
+        best_precision = max(precision, best_precision)
 
-    time.sleep(60)
+        precision_summ = tf.Summary()
+        precision_summ.value.add(
+            tag='Precision', simple_value=precision)
+        summary_writer.add_summary(precision_summ, train_step)
+        best_precision_summ = tf.Summary()
+        best_precision_summ.value.add(
+            tag='Best Precision', simple_value=best_precision)
+        summary_writer.add_summary(best_precision_summ, train_step)
+        summary_writer.add_summary(summaries, train_step)
+        tf.logging.info('loss: %.3f, precision: %.3f, best precision: %.3f' %
+                        (loss, precision, best_precision))
+        tf.logging.info('The eval summary will store in %s' % (summary_writer.get_logdir()))
+        summary_writer.flush()
+
+        if FLAGS.eval_once:
+          break
+
+        time.sleep(60)
 
 
 def main(_):
   tf.logging.info("The train_dir is %s" % FLAGS.train_dir)
+  tf.logging.info("The log_dir is %s" % FLAGS.log_dir)
   tf.logging.info("The eval_data_path is %s" % FLAGS.eval_data_path)
   if FLAGS.num_gpus == 0:
     dev = '/cpu:0'
