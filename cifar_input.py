@@ -119,7 +119,7 @@ def build_input(dataset, data_path, batch_size, mode):
     return images, labels
 
 
-def eval_data_input(eval_data_path, EVAL_NUM, show_images=True):
+def eval_data_input(eval_data_path, EVAL_NUM, show_images=False):
     tf.logging.info('Loading the eval data from {}'.format(eval_data_path))
     label_bytes = 1  # 2 for CIFAR-100
     height = 32
@@ -158,7 +158,7 @@ def eval_data_input(eval_data_path, EVAL_NUM, show_images=True):
     std = np.expand_dims(X_test.reshape((EVAL_NUM, -1)).std(axis=1), axis=1)
     # print(mean.shape, std.shape)
     images_std = ((X_test.reshape((EVAL_NUM, -1)) - mean) / std).reshape((EVAL_NUM, height, width, depth))
-    return images_std, Y_test
+    return images_std, Y_test, X_test
 
 
 def show_eval_images(images, labels, EVAL_NUM):
@@ -179,4 +179,26 @@ def show_eval_images(images, labels, EVAL_NUM):
             plt.title(label_dict[np.argmax(labels[index])])
         else:
             pass
+    plt.show()
+
+
+def display_eval_images(images, labels, predictions, image_nums):
+    label_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+    label_dict = {}
+    for key, value in enumerate(label_names):
+        label_dict[key] = value
+
+    tf.logging.info('Display the image from the eval data')
+    # index = 1
+    # print('The label of {0}th image is {1}:{2}'.format(index, label[index], label_dict[label[index]]))
+    plt.figure(figsize=(16, 16))
+    for index in range(image_nums):
+        plt.subplot(math.ceil(image_nums / 10), 10, index + 1)
+        plt.imshow(images[index])
+        plt.axis('off')
+        if np.argmax(labels[index]) == predictions[index]:
+            plt.title(label_dict[np.argmax(labels[index])])
+        else:
+            plt.title(label_dict[np.argmax(labels[index])] + ' != ' + label_dict[predictions[index]],
+                      color='r')
     plt.show()

@@ -25,7 +25,7 @@ freeze_graph.py是怎么做的呢？
 import os
 import tensorflow as tf
 from tensorflow.python.tools import freeze_graph
-from cifar_input import eval_data_input
+from cifar_input import eval_data_input, display_eval_images
 import resnet_model
 import matplotlib.pyplot as plt
 import math
@@ -183,7 +183,7 @@ precision_tensor = graph.get_tensor_by_name("prefix/precision:0")
 # 输出需要评估的数据
 EVAL_NUM = 100
 
-images, labels = eval_data_input(eval_data_path, EVAL_NUM)
+images, labels,images_org = eval_data_input(eval_data_path, EVAL_NUM)
 
 
 def create_config_proto():
@@ -196,4 +196,6 @@ with tf.Session(graph=graph, config=create_config_proto()) as sess:
     predictions_value, precision_value = sess.run([prediction_tensor,precision_tensor], feed_dict={x: images, y: labels})
     print("The prediction:{0}\nThe label:{1}\nThe precision:{2}"\
           .format(predictions_value, np.argmax(labels, axis=1), precision_value))
+
+    display_eval_images(images_org, labels, predictions_value, 100)
 
