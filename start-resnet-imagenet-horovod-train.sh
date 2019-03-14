@@ -101,7 +101,7 @@ do
 done
 
 #run on cifar
-script=/Tensorflow/docker-multiple/ResNet/resnet_imagenet_train_horovod.py
+script=/Tensorflow/docker-multiple/ResNet/resnet_imagenet_horovod_train.py
 data_dir=/home/hdd0/dataset/imagenet2012/ILSVRC2012
  
 

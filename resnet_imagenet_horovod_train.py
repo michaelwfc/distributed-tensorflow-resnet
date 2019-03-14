@@ -215,7 +215,6 @@ def create_config_proto():
     to be whatever you want. For example, to achieve what you're trying to do, you can explicitly map individual 
     ranks to devices
     '''
-
     device_map = {
         0: 0,
         1: 1,
@@ -223,9 +222,6 @@ def create_config_proto():
         3: 3
     }
     config.gpu_options.visible_device_list = str(device_map[hvd.rank()])
-
-
-
     return config
 
 

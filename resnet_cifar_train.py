@@ -139,20 +139,20 @@ def record_dataset(filenames):
 
 
 def get_filenames(is_training, data_dir):
-  """Returns a list of filenames."""
-  data_dir = os.path.join(data_dir, 'cifar-10-batches-bin')
+    """Returns a list of filenames."""
+    data_dir = os.path.join(data_dir, 'cifar-10-batches-bin')
 
-  assert os.path.exists(data_dir), (
-      'Run cifar10_download_and_extract.py first to download and extract the '
-      'CIFAR-10 data.')
+    assert os.path.exists(data_dir), (
+        'Run cifar10_download_and_extract.py first to download and extract the '
+        'CIFAR-10 data.')
 
-  if is_training:
-    return [
-        os.path.join(data_dir, 'data_batch_%d.bin' % i)
-        for i in range(1, _NUM_DATA_FILES + 1)
-    ]
-  else:
-    return [os.path.join(data_dir, 'test_batch.bin')]
+    if is_training:
+        return [
+            os.path.join(data_dir, 'data_batch_%d.bin' % i)
+            for i in range(1, _NUM_DATA_FILES + 1)
+        ]
+    else:
+        return [os.path.join(data_dir, 'test_batch.bin')]
 
 
 def parse_record(raw_record):
@@ -274,7 +274,7 @@ def train(hps, server = None):
 
   summary_hook = tf.train.SummarySaverHook(
       save_steps=100,
-      #output_dir=FLAGS.eval_dir,
+      # output_dir=FLAGS.eval_dir,
       output_dir=FLAGS.log_dir,
       summary_op=tf.summary.merge([model.summaries,
                                    tf.summary.scalar('Precision', precision)]))

@@ -30,7 +30,7 @@ docker network create --driver=bridge --subnet=10.20.40.0/24 --gateway=10.20.40.
 
 scripts_dir=/home/h3cai01/wangfeicheng/Tensorflow
 WORKDIR="/Tensorflow"
-data_dir=/home/hdd0/dataset/cifar10_data
+data_dir=/home/hdd0/dataset
 worker_limitresources='--cpus=5 --memory=10G'
 
 echo "Generating the contain for worker:"
