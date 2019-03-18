@@ -13,7 +13,7 @@ import math
 
 
 eval_data_path = r'D:\wangfeicheng\Tensorflow\cifar10-tensorflow\cifar-10-binary\cifar-10-batches-bin\test_batch.bin'
-train_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\resnet50-cifar-ckpt-20190218\model.ckpt-107738'
+train_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\test\resnet50-cifar-ckpt-20190218\model.ckpt-107738'
 eval_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\resnet50-cifar-eval'
 
 FLAGS = tf.app.flags.FLAGS
