@@ -18,19 +18,19 @@ eval_data_path=/home/hdd0/dataset/cifar10_data/cifar-10-batches-bin/test_batch.b
 if [ $variable_update = 'parameter_server' ];then
 	image=ufoym/deepo:all-jupyter-py36
 	#checkpoint_dir
-	train_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt"
+	train_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-ckpt"
 	#log_dir
-	log_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-log/train"
+	log_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-log/train"
 	#eval_dir
-	eval_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-log/validation"
+	eval_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-log/validation"
 elif [ $variable_update = 'horovod' ];then
 	image=horovod_resnet50:v2
 	#checkpoint_dir
-	train_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-horovod-ckpt"
+	train_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-ckpt"
 	#log_dir
-	log_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-horovod-log/train"
+	log_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-log/train"
 	#eval_dir
-	eval_dir="/Tensorflow/docker-multiple/ResNet/resnet50-cifar-horovod-log/validation"
+	eval_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-log/validation"
 	
 	#horovod setting
 	worker_num=4
@@ -90,7 +90,7 @@ if [ $variable_update = 'parameter_server' ];then
 	ps_limitresources='--cpus=8 --memory=20G'
 	worker_limitresources='--cpus=5 --memory=10G'
 
-	scripts_dir=/home/h3cai01/wangfeicheng/Tensorflow
+	scripts_dir=/home/wangfeicheng/Tensorflow
 	WORKDIR="/Tensorflow"
 
 	ps0_cmd="python $script --train_data_path=$data_dir  --eval_data_path=$data_dir \  
