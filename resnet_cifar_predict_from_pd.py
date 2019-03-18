@@ -52,7 +52,7 @@ tf.flags.DEFINE_integer("num_inter_threads", 0,
 EVAL_NUM = 100
 
 # ckpt保存位置
-ckpt_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\resnet50-cifar-ckpt-20190218'
+ckpt_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\test\resnet50-cifar-ckpt-20190218'
 
 # eval数据保存位置
 eval_data_path = r'D:\wangfeicheng\Tensorflow\cifar10-tensorflow\cifar-10-binary\cifar-10-batches-bin\test_batch.bin'
