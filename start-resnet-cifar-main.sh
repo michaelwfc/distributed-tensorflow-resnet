@@ -8,7 +8,7 @@ train_steps=200001
 
 
 #run on cifar
-script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
+script="/Tensorflow/docker-multiple/distributed-tensorflow-resnet/resnet_cifar_main.py"
 #eval on cifar
 eval_script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
 data_dir=/home/hdd0/dataset/cifar10_data
