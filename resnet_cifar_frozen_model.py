@@ -2,7 +2,7 @@
 '''
 
 Save to  .pd with evaluation model
-1. 重建evaluation graph（必须同 training 时候所建模型一致）:
+1. 重建 evaluation graph（必须同 training 时候所建模型一致）:
 2. 将 evaluation graph 保存到 .meta
    上诉两步实际可以在训练的时候提前将 evaluation graph保存为 meta_graph
 3. 读取ckpt文件中的variable，将其与 meta_graph 合并，形成 .pd 文件
@@ -75,7 +75,7 @@ hps = resnet_model.HParams(num_classes=num_classes,
                            weight_decay_rate=0.0002,
                            optimizer='mom')
 
-# 1. 重建evaluation graph（必须同 training 时候所建模型一致）:
+# 1. 重建 evaluation graph（必须同 training 时候所建模型一致）:
 tf.reset_default_graph()
 
 with tf.Graph().as_default() as eval_graph:

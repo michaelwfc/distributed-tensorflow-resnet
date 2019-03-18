@@ -1,7 +1,7 @@
 # Freeze model from checkpoint file
 '''
 
-利用 pd 文件(evaluation grsph + ckpt)做预测:
+利用 pd 文件(evaluation graph + ckpt)做预测:
 1. 读取 pd 文件
 2. 指定输入，输出节点
 3. 读取数据
@@ -49,7 +49,7 @@ tf.flags.DEFINE_integer("num_inter_threads", 0,
                         "Number of threads to use for inter-op parallelism. If set"
                         "to 0, the system will pick an appropriate number.")
 # 输出需要评估的数据
-EVAL_NUM = 16
+EVAL_NUM = 100
 
 # ckpt保存位置
 ckpt_dir = r'D:\wangfeicheng\Tensorflow\docker-multiple\ResNet\resnet50-cifar-ckpt-20190218'
@@ -102,4 +102,4 @@ with tf.Session(graph=graph, config=create_config_proto()) as sess:
     print("The prediction:{0}\nThe label:{1}\nThe precision:{2}" \
           .format(predictions_value, np.argmax(labels, axis=1), precision_value))
 
-    display_eval_images(images_org,labels,predictions_value,16)
+    display_eval_images(images_org,labels,predictions_value,EVAL_NUM)

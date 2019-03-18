@@ -1,6 +1,0 @@
-model_checkpoint_path: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-107738"
-all_model_checkpoint_paths: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-100576"
-all_model_checkpoint_paths: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-102370"
-all_model_checkpoint_paths: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-104168"
-all_model_checkpoint_paths: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-105952"
-all_model_checkpoint_paths: "/Tensorflow/docker-multiple/ResNet/resnet50-cifar-ckpt/model.ckpt-107738"
