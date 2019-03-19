@@ -2,18 +2,19 @@
   
 #training with distributed mode and evalation with another process
 mode='train'
-variable_update=horovod
-#parameter_server
+variable_update=parameter_server
+# horovod
 train_steps=200001
 
 
 #run on cifar
-script="/Tensorflow/docker-multiple/distributed-tensorflow-resnet/resnet_cifar_main.py"
+script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
 #eval on cifar
 eval_script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
-data_dir=/home/hdd0/dataset/cifar10_data
-train_data_path=/home/hdd0/dataset/cifar10_data
-eval_data_path=/home/hdd0/dataset/cifar10_data/cifar-10-batches-bin/test_batch.bin
+data_dir=/home/wangfeicheng/Tensorflow/cifar10-tensorflow/data
+train_data_path=/home/wangfeicheng/Tensorflow/cifar10-tensorflow/data
+eval_data_path=/home/wangfeicheng/Tensorflow/cifar10-tensorflow/data/cifar-10-batches-bin/test_batch.bin
+
 
 if [ $variable_update = 'parameter_server' ];then
 	image=ufoym/deepo:all-jupyter-py36
@@ -31,28 +32,12 @@ elif [ $variable_update = 'horovod' ];then
 	log_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-log/train"
 	#eval_dir
 	eval_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-log/validation"
-	
 	#horovod setting
 	worker_num=4
 	gpu_num=4
 	gpu_per_worker=1
 fi
 	
-
-'''
-#run on imagenet
-script=/Tensorflow/docker-multiple/ResNet/resnet_imagenet_horovod_train.py
-data_dir=/home/hdd0/dataset/imagenet2012/ILSVRC2012
- 
-
-#checkpoint_dir
-train_dir="/Tensorflow/docker-multiple/ResNet/resnet50-imagenet-horovod-ckpt"
-#log_dir
-log_dir="/Tensorflow/docker-multiple/ResNet/resnet50-imagenet-horovod-log"
-#eval_dir
-eval_dir="/Tensorflow/docker-multiple/ResNet/resnet50-imagenet-horovod-eval"
-'''
-
 ###==========================parameter_server===========================
 ###=====================================================================
 ###=====================================================================
@@ -61,10 +46,8 @@ if [ $variable_update = 'parameter_server' ];then
 	echo "Starting the variable_update:$variable_update"
 	ps_num=4
 	worker_num=4
-
 	ps_ips=('10.20.30.10' '10.20.30.11' '10.20.30.12' '10.20.30.13')
 	worker_ips=('10.20.30.100' '10.20.30.101' '10.20.30.102' '10.20.30.103')
-
 	echo "Building the host for ps and workers:"
 	ps_hosts=''
 	ps_port=2222
@@ -75,9 +58,8 @@ if [ $variable_update = 'parameter_server' ];then
 		else ps_hosts=$ps_hosts','$ps_host:$ps_port
 		fi
 	done
-
+	
 	echo $ps_hosts
-
 	worker_hosts=''
 	index=True
 	for worker_host in ${worker_ips[*]}
@@ -86,7 +68,7 @@ if [ $variable_update = 'parameter_server' ];then
 		else worker_hosts=$worker_hosts','$worker_host:$ps_port
 		fi
 	done
-
+	
 	ps_limitresources='--cpus=8 --memory=20G'
 	worker_limitresources='--cpus=5 --memory=10G'
 
