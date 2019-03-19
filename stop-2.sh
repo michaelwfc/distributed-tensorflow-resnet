@@ -4,8 +4,10 @@ worker_num=4
 for index in $(seq $ps_num)
 do
 	index=`expr $index - 1`
-	docker stop tfps$index
+	docker stop tfps$index 
 	docker container rm tfps$index
+	docker stop horovod_worker$index
+	docker container rm horovod_worker$index
 done
 
 for index in $(seq $worker_num)

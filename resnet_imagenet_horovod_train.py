@@ -21,7 +21,7 @@ import tempfile
 import sys
 import os
 
-import cifar_input
+#import cifar_input
 import numpy as np
 import resnet_model
 import logist_model
@@ -241,7 +241,7 @@ def train(hps, server):
     summary_hook = tf.train.SummarySaverHook(
         save_steps=100,
         # output_dir=FLAGS.train_dir,
-        output_dir=FLAGS.log_dir + '/train',
+        output_dir=FLAGS.log_dir,
         summary_op=tf.summary.merge([model.summaries,
                                      tf.summary.scalar('Training_Precision', precision)]))
 
