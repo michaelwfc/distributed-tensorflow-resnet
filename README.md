@@ -11,8 +11,6 @@ I met the same problem with SyncReplicaOptimzor as mentioned in
 
 [stackoverflow](https://stackoverflow.com/questions/42006967/scalability-issues-related-to-distributed-tensorflow)
 
-If you have any idea to fix this problem, please contact the author.
-contact: Jiarui Fang (fjr14@mails.tsinghua.edu.cn)
 
 <b>Results with this code:</b>
 1. Cifar-10
@@ -56,10 +54,9 @@ Also get lower eval accuracy values.
 ## Usage
 <b>Prerequists</b>
 
-1. Install TensorFlow, Bazel.
-I install a conda2 package on Daint. Bazel and other packages required are installed by virtualenv inside conda2.
+1. Install TensorFlow
 
-2. Download ImageNet Dataset to Daint
+2. Download ImageNet Dataset
 To avoid the error raised from unrecognition of the relative directory path, the following modification should made in download_and_preprocess_imagenet.sh.
 replace
 ```shell
@@ -79,22 +76,8 @@ curl -o cifar-10-binary.tar.gz https://www.cs.toronto.edu/~kriz/cifar-10-binary.
 curl -o cifar-100-binary.tar.gz https://www.cs.toronto.edu/~kriz/cifar-100-binary.tar.gz
 ```
 
-<b>How to run:</b>
-```shell
-$ cd scripts 
-# run local for cifar10. It will launch 1 ps and 2 workers
-$ sh submit_local_dist.sh
-# run distributed for cifar
-$ sh submit_cifar_daint_dist.sh #server #worker #batch_size
-# run distributed for Imagenet
-$ sh submit_imagenet_daint_dist.sh #server #worker
-```
-I left one node for evaluation, so the #worker should be the #worker for traing plus one.
-For example, you would like to launch a 2 ps and 4 worker job and evaluate your model simultanously on another node. 
-The ps and work are assigned to the same node in default.
-```shell
-$ cd scripts
-$ sh submit_imagenet_daint_dist.sh 2 5
+
+
 ```
 
 <b>Related papers:</b>
