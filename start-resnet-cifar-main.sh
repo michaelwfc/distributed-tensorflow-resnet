@@ -8,7 +8,8 @@ train_steps=200001
 
 
 #run on cifar
-script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
+#script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
+script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_train.py"
 #eval on cifar
 eval_script="/Tensorflow/docker-multiple/ResNet/resnet_cifar_main.py"
 data_dir=/home/wangfeicheng/Tensorflow/cifar10-tensorflow/data
@@ -17,7 +18,8 @@ eval_data_path=/home/wangfeicheng/Tensorflow/cifar10-tensorflow/data/cifar-10-ba
 
 
 if [ $variable_update = 'parameter_server' ];then
-	image=ufoym/deepo:all-jupyter-py36
+	#image=ufoym/deepo:all-jupyter-py36
+	image=3.2.1.12/tensorflow-1.12-gpu-py3:1.12
 	#checkpoint_dir
 	train_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-ckpt"
 	#log_dir
@@ -34,7 +36,7 @@ elif [ $variable_update = 'horovod' ];then
 	eval_dir="/Tensorflow/docker-multiple/ResNet/test/resnet50-cifar-horovod-log/validation"
 	#horovod setting
 	worker_num=4
-	gpu_num=4
+	gpu_num=2
 	gpu_per_worker=1
 fi
 	
@@ -44,30 +46,40 @@ fi
 
 if [ $variable_update = 'parameter_server' ];then
 	echo "Starting the variable_update:$variable_update"
-	ps_num=4
-	worker_num=4
+	ps_num=2
+	worker_num=2
 	ps_ips=('10.20.30.10' '10.20.30.11' '10.20.30.12' '10.20.30.13')
 	worker_ips=('10.20.30.100' '10.20.30.101' '10.20.30.102' '10.20.30.103')
 	echo "Building the host for ps and workers:"
 	ps_hosts=''
 	ps_port=2222
+	count=0
 	index=True
 	for ps_host in ${ps_ips[*]}
 	do
-		if [ $index == True ];then ps_hosts=$ps_host:$ps_port;index=False
-		else ps_hosts=$ps_hosts','$ps_host:$ps_port
+		if [ $count -lt $ps_num ];then
+			if [ $index == True ];then ps_hosts=$ps_host:$ps_port;index=False
+			else ps_hosts=$ps_hosts','$ps_host:$ps_port
+			fi
 		fi
+		count=`expr $count + 1`
 	done
 	
 	echo $ps_hosts
 	worker_hosts=''
+	count=0
 	index=True
 	for worker_host in ${worker_ips[*]}
 	do
-		if [ $index == True ];then worker_hosts=$worker_host:$ps_port;index=False
-		else worker_hosts=$worker_hosts','$worker_host:$ps_port
+		if [ $count -lt $worker_num ];then
+			if [ $index == True ];then worker_hosts=$worker_host:$ps_port;index=False
+			else worker_hosts=$worker_hosts','$worker_host:$ps_port
+			fi
 		fi
+		count=`expr $count + 1`
+		
 	done
+	echo $worker_host
 	
 	ps_limitresources='--cpus=8 --memory=20G'
 	worker_limitresources='--cpus=5 --memory=10G'
@@ -104,10 +116,11 @@ if [ $variable_update = 'parameter_server' ];then
 	for index in $(seq $worker_num)
 	do
 		index=`expr $worker_num - $index`
+		gpu_index=`expr $index + 6`
 		echo "generating the worker:$index"
 		nvidia-docker run -t -d -v $scripts_dir:$WORKDIR -v $data_dir:$data_dir $worker_limitresources \
 		--net tfdocker --ip ${worker_ips[$index]} \
-		-e "CUDA_VISIBLE_DEVICES=$index" --name tfworker$index $image
+		-e "CUDA_VISIBLE_DEVICES=$gpu_index" --name tfworker$index $image
 		
 		echo "executing the worker:$index command"	
 		if [ $index == 0 ]
@@ -234,7 +247,7 @@ fi
 echo -e "Validation:"
 
 eval_cmd="python  $eval_script --eval_data_path $eval_data_path --train_dir=$train_dir --eval_dir=$eval_dir \
---num_gpus 1 --mode=eval"
+--num_gpus 0 --mode=eval"
 
 nvidia-docker run -t -d -v $scripts_dir:$WORKDIR -v $data_dir:$data_dir -e "CUDA_VISIBLE_DEVICES=7" --name tf-eval $image
 docker exec --workdir $WORKDIR -i tf-eval $eval_cmd

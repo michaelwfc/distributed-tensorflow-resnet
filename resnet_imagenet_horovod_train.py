@@ -243,7 +243,7 @@ def train(hps, server):
         # output_dir=FLAGS.train_dir,
         output_dir=FLAGS.log_dir,
         summary_op=tf.summary.merge([model.summaries,
-                                     tf.summary.scalar('Training_Precision', precision)]))
+                                     tf.summary.scalar('Precision', precision)]))
 
     logging_hook = tf.train.LoggingTensorHook(
         tensors={'step': model.global_step,
